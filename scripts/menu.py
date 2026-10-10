@@ -37,6 +37,23 @@ def _text(msg):
     return "".join(b.get("text", "") for b in content or [] if isinstance(b, dict))
 
 
+def last_reply(path):
+    """ข้อความของคำตอบล่าสุดจาก transcript (ใช้เมื่อ hook ไม่ได้ส่ง last_assistant_message มา)"""
+    try:
+        with open(path, encoding="utf-8") as f:
+            lines = f.readlines()[-200:]
+    except (OSError, TypeError):
+        return ""
+    for raw in reversed(lines):
+        try:
+            msg = json.loads(raw)
+        except ValueError:
+            continue
+        if msg.get("type") == "assistant" and _text(msg).strip():
+            return _text(msg)
+    return ""
+
+
 def last_menu(path):
     """เมนู 3 ข้อที่ Claude เสนอไว้ในคำตอบล่าสุด (เมนูเปลี่ยนตามบทสนทนา) -> {"Y": …, "B": …, "A": …} หรือ None"""
     try:

@@ -16,7 +16,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lib  # noqa: E402
 
 LOG_FILE = os.path.join(lib.STATE_DIR, "charger.log")
-PID_FILE = os.path.join(lib.STATE_DIR, "charger.pid")
 MAX_LOG_BYTES = 100_000
 POLL_SEC = 0.5
 WINDOW_SEC = 10       # นับการเสียบ/ถอดภายในช่วงนี้ (เว้น 2-3 วิระหว่างครั้งก็ยังนับ)
@@ -57,18 +56,6 @@ def on_ac():
     return None
 
 
-def already_running():
-    try:
-        with open(PID_FILE) as f:
-            pid = int(f.read().strip())
-        if pid != os.getpid():
-            os.kill(pid, 0)
-            return True
-    except (OSError, ValueError):
-        pass
-    return False
-
-
 def notify(toggles):
     affection = lib.load()["affection"]
     _, name = lib.tier(affection)
@@ -87,8 +74,9 @@ def notify(toggles):
 def loop():
     state = on_ac()
     if state is None:
-        log("ไม่เจอแบตเตอรี่ ปิดตัว")
-        return
+        log("ไม่เจอแบตเตอรี่ ไม่ต้องเฝ้า")
+        while True:  # อยู่เฉยๆ ห้ามจบ (monitor ที่จบจะปลุก Claude)
+            time.sleep(3600)
     toggles, last_toggle, last_notify = [], 0.0, 0.0
     while True:
         time.sleep(POLL_SEC)
@@ -111,16 +99,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--debug", action="store_true")
     _debug = ap.parse_args().debug
-    os.makedirs(lib.STATE_DIR, exist_ok=True)
-    if already_running():
-        return
+    lib.single_instance("charger")
     try:
         if os.path.getsize(LOG_FILE) > MAX_LOG_BYTES:
             os.remove(LOG_FILE)
     except OSError:
         pass
-    with open(PID_FILE, "w") as f:
-        f.write(str(os.getpid()))
     try:
         loop()
     except KeyboardInterrupt:

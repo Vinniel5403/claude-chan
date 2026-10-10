@@ -3,6 +3,7 @@ import contextlib
 import fcntl
 import json
 import os
+import subprocess
 import tempfile
 import time
 
@@ -34,6 +35,38 @@ def _defaults():
         "pet_cursor": 0,
         "pet_hour": {"start": 0, "gain": 0},
     }
+
+
+_held = []  # ไฟล์ lock ของ single_instance ต้องเปิดค้างไว้ตลอดอายุ process
+
+
+def _alive(pid_file, script):
+    """pid ในไฟล์ยังเป็น script นั้นอยู่ไหม (เช็คชื่อด้วย เผื่อ pid ถูก process อื่นเอาไปใช้ซ้ำ)"""
+    try:
+        with open(pid_file) as f:
+            pid = int(f.read().strip())
+        if pid == os.getpid():
+            return False
+        out = subprocess.run(["ps", "-o", "command=", "-p", str(pid)], capture_output=True, text=True, timeout=5)
+        return script in out.stdout
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return False
+
+
+def single_instance(name):
+    """daemon ได้ตัวเดียวทั้งเครื่อง ; ถ้าอีกหน้าต่าง Claude Code ถืออยู่ ให้รอจนหน้าต่างนั้นปิดแล้วรับช่วงต่อ
+
+    ห้ามจบ process แทนการรอ เพราะ monitor ที่จบจะปลุก Claude ให้ตอบเปล่าๆ
+    """
+    os.makedirs(STATE_DIR, exist_ok=True)
+    f = open(os.path.join(STATE_DIR, f"{name}.lock"), "w")
+    fcntl.flock(f, fcntl.LOCK_EX)  # บล็อกจนตัวเก่าตาย (OS ปล่อย lock ให้เอง)
+    _held.append(f)
+    pid_file = os.path.join(STATE_DIR, f"{name}.pid")
+    while _alive(pid_file, f"{name}_daemon.py"):  # daemon รุ่นก่อนที่ยังไม่ใช้ lock
+        time.sleep(5)
+    with open(pid_file, "w") as p:
+        p.write(str(os.getpid()))
 
 
 @contextlib.contextmanager

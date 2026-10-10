@@ -22,7 +22,6 @@ import pets  # noqa: E402
 
 RAW_PER_G = 4096.0
 LOG_FILE = os.path.join(lib.STATE_DIR, "joycon.log")
-PID_FILE = os.path.join(lib.STATE_DIR, "joycon.pid")
 MAX_LOG_BYTES = 200_000
 QUIET_SEC = 2.5       # หยุดลูบนานเท่านี้ถึงนับว่าจบรอบ แล้วค่อยแจ้ง Claude
 MIN_NOTIFY_GAP = 20   # ปลุก Claude ได้อย่างมากทุกกี่วินาที (แต่ละครั้งคือ 1 turn ที่เสียโทเคน)
@@ -45,18 +44,6 @@ def log(msg):
 def notify(line):
     """บรรทัดเดียว = 1 notification ถึง Claude"""
     print(line, flush=True)
-
-
-def already_running():
-    try:
-        with open(PID_FILE) as f:
-            pid = int(f.read().strip())
-        if pid != os.getpid():
-            os.kill(pid, 0)
-            return True
-    except (OSError, ValueError):
-        pass
-    return False
 
 
 FACES = {"pet": "(⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄)", "shake": "(`Д´#)"}
@@ -291,16 +278,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--debug", action="store_true")
     _debug = ap.parse_args().debug
-    os.makedirs(lib.STATE_DIR, exist_ok=True)
-    if already_running():
-        return  # มี daemon อยู่แล้ว (กันสองตัวแย่ง Joy-Con)
+    lib.single_instance("joycon")  # กันสองตัวแย่ง Joy-Con
     try:
         if os.path.getsize(LOG_FILE) > MAX_LOG_BYTES:
             os.remove(LOG_FILE)
     except OSError:
         pass
-    with open(PID_FILE, "w") as f:
-        f.write(str(os.getpid()))
     last_err = None
     while True:  # หลุดแล้วต่อใหม่เอง (Joy-Con หลับ/ปิดฝา)
         try:

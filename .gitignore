@@ -4,3 +4,4 @@ __pycache__/
 .DS_Store
 box.txt
 reset.txt
+*.mp3
