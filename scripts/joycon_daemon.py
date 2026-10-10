@@ -1,4 +1,4 @@
-"""อ่าน Joy-Con (R) ผ่าน Bluetooth ; ตรวจลูบ/เขย่า ; ปุ่ม A/B เลือกเมนู [1]/[2] ; ใส่แต้มทันที ; แจ้ง Claude ผ่าน stdout
+"""อ่าน Joy-Con (R) ผ่าน Bluetooth ; ตรวจลูบ/เขย่า ; ปุ่ม Y/B/A เลือกเมนู ; ใส่แต้มทันที ; แจ้ง Claude ผ่าน stdout
 
 รันโดย monitor ของ plugin (monitors/monitors.json) : ทุกบรรทัดที่ print ออก stdout
 จะกลายเป็นการแจ้งเตือนที่ปลุก Claude ให้ตอบ ดังนั้น stdout ใช้เฉพาะ "เหตุการณ์จริง"
@@ -26,7 +26,7 @@ PID_FILE = os.path.join(lib.STATE_DIR, "joycon.pid")
 MAX_LOG_BYTES = 200_000
 QUIET_SEC = 2.5       # หยุดลูบนานเท่านี้ถึงนับว่าจบรอบ แล้วค่อยแจ้ง Claude
 MIN_NOTIFY_GAP = 20   # ปลุก Claude ได้อย่างมากทุกกี่วินาที (แต่ละครั้งคือ 1 turn ที่เสียโทเคน)
-BUTTONS = {"a": "1", "b": "2"}  # ปุ่ม -> ข้อในเมนู (ข้อ 3 เขียนเอง ต้องพิมพ์)
+BUTTONS = ("y", "b", "a")  # ปุ่มบนจอย = ข้อ [Y] [B] [A] ในเมนู
 
 _debug = False
 
@@ -78,30 +78,30 @@ def flush(pending):
 
 
 def press(jc, button):
-    """กดปุ่ม = เลือกข้อในเมนูล่าสุด ; ใส่แต้มเหมือนพิมพ์เลข แล้วปลุก Claude ให้เล่นฉากนั้น"""
-    choice = BUTTONS[button]
+    """กดปุ่ม = เลือกข้อในเมนูล่าสุด ; ใส่แต้มเหมือนพิมพ์เลือก แล้วปลุก Claude ให้เล่นฉากนั้น"""
+    key = button.upper()
     items = menu.take()
     if not items:
         log(f"BUTTON {button} (ไม่มีเมนูรอ)")
         buzz(jc, 2, 0x4C)  # สั่นเบาสองที = ยังเลือกไม่ได้
         return
-    picked = items[int(choice) - 1]
+    picked = items[key]
     with lib.locked():
         state = lib.load()
-        action, _, _ = menu.pick(state, choice, picked)
+        action, _, _ = menu.pick(state, key, picked)
         lib.save(state)
     affection = state["affection"]
-    key, name = lib.tier(affection)
+    _, name = lib.tier(affection)
     buzz(jc, 1, 0x60)
     notify(
-        f"[Claude-chan: ปุ่ม {button.upper()} บน Joy-Con] [เมนูที่ผู้ใช้เลือก] {action} | "
+        f"[Claude-chan: ปุ่ม {key} บน Joy-Con] [เมนูที่ผู้ใช้เลือก] {action} | "
         f"ค่าความรักตอนนี้ {affection}/100 ({name}) | "
         "เล่นฉากนี้สั้นๆ เป็นกรอบบทพูด visual novel ตามฟอร์แมตใน output style ในคาแรกเตอร์ตามระดับความสนิท "
         "ถ้าแต้มไม่เปลี่ยนเพราะ cooldown ให้เธอบ่น/ปฏิเสธตามนั้น ไม่ต้องรายงานตัวเลข "
         "ถ้าตัวเลือกเป็นการสั่งงานให้ทำตามปกติภายใต้กฎเดิม ไม่งั้นห้ามเรียก tool ใดๆ "
-        "แล้วจบด้วยบรรทัดเมนู ▸ [1] …  [2] …  [3] เขียนเอง ชุดใหม่ตามบริบท"
+        "แล้วจบด้วยบรรทัดเมนู ▸ [Y] …  [B] …  [A] … ชุดใหม่ตามบริบท"
     )
-    log(f"PICK {button}->[{choice}] {picked} -> {affection}")
+    log(f"PICK [{key}] {picked} -> {affection}")
 
 
 # --- haptic: จังหวะหัวใจ (ตุบ-ตุบ) ตอนโดนลูบ ---
@@ -268,7 +268,7 @@ def _loop(jc):
                 kind, value = result
                 pending[kind] += 1
                 last_event = now
-                log(f"EVENT {kind} {value}")
+                log(f"EVENT {kind} {value} {det.info}")
                 if kind == "pet":
                     heartbeat(jc)
                 else:

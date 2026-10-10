@@ -1,4 +1,4 @@
-"""Game actions. ใช้จาก prompt_submit (เมนู [1] [2]) และ CLI: game.py status"""
+"""Game actions. ใช้จาก prompt_submit (เมนูคลาสสิก [A] [B]) และ CLI: game.py status"""
 import datetime
 import random
 import sys
@@ -22,7 +22,7 @@ def _left(last, cd):
 
 
 def trip(state, place=""):
-    """[1] พาไปเที่ยว -> dict(ok, delta, emotion, text)"""
+    """[A] พาไปเที่ยว -> dict(ok, delta, emotion, text)"""
     left = _left(state["last_trip"], TRIP_COOLDOWN)
     if left:
         return {"ok": False, "delta": 0, "emotion": None,
@@ -37,7 +37,7 @@ def trip(state, place=""):
 
 
 def gift(state, item=""):
-    """[2] ให้ของขวัญ -> dict(ok, delta, emotion, text)"""
+    """[B] ให้ของขวัญ -> dict(ok, delta, emotion, text)"""
     left = _left(state["last_gift"], GIFT_COOLDOWN)
     if left:
         return {"ok": False, "delta": 0, "emotion": None,

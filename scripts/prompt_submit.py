@@ -52,7 +52,8 @@ try:
 except ValueError:
     data = {}
 
-MENU = re.compile(r"^\s*\[?([123])\]?(?:\s+(.*))?$", re.S)
+# Y / [Y] / 1 (เลขแบบเก่า = ตามตำแหน่งในเมนู) ; ตัวพิมพ์เล็กไม่นับ กัน "y" ตอบ yes หรือประโยคอังกฤษขึ้นต้นด้วย "a"
+MENU = re.compile(r"^\s*\[?([YAB123])\]?(?:\s+(.*))?$", re.S)
 
 
 with lib.locked():
@@ -64,13 +65,12 @@ with lib.locked():
 
     m = MENU.match(prompt)
     if m:
-        choice, rest = m.group(1), (m.group(2) or "").strip()
+        key, rest = m.group(1), (m.group(2) or "").strip()
+        key = menu.KEYS["123".index(key)] if key.isdigit() else key
         menu_items = menu.last_menu(data.get("transcript_path"))
-        picked = menu_items[int(choice) - 1] if menu_items else ""
-        if choice == "3":
-            prompt = rest or prompt  # [3] เขียนเอง: ข้อความที่เหลือคือสิ่งที่พูด/สั่งจริง
-        elif len(rest) <= 30:
-            action, emotion, delta = menu.pick(state, choice, picked, rest)
+        picked = menu_items[key] if menu_items else ""
+        if len(rest) <= 30:
+            action, emotion, delta = menu.pick(state, key, picked, rest) or (None, None, 0)
 
     if action is None:
         delta = score(prompt, state)
