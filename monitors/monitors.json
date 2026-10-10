@@ -1,0 +1,8 @@
+[
+  {
+    "name": "joycon-pet",
+    "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run_daemon.sh\"",
+    "description": "Claude-chan: อ่าน Joy-Con (ลูบ/เขย่า) แล้วแจ้งทันที",
+    "when": "always"
+  }
+]
