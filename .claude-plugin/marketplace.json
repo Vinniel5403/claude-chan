@@ -1,0 +1,12 @@
+{
+  "name": "claude-chan",
+  "owner": { "name": "vinniel" },
+  "metadata": { "description": "Claude-chan dating-sim plugin for Claude Code" },
+  "plugins": [
+    {
+      "name": "claude-chan",
+      "source": "./",
+      "description": "เกมจีบ Claude-chan: ค่าความสัมพันธ์ต่ำ = เรื่องมาก/ไม่ยอมทำงาน, ค่าสูง = เชื่อฟัง"
+    }
+  ]
+}

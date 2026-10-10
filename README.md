@@ -1,0 +1,37 @@
+# Claude-chan
+
+เกมจีบ Claude-chan ใน Claude Code — ค่าความสัมพันธ์ต่ำ = เรื่องมาก/ไม่ยอมทำงาน, ค่าสูง = เชื่อฟัง
+
+## ติดตั้ง
+
+ใน Claude Code:
+
+```
+/plugin marketplace add Vinniel5403/claude-chan
+/plugin install claude-chan@claude-chan
+```
+
+แล้ว restart Claude Code
+
+- ต้องมี `python3` (ใช้แค่ stdlib)
+- เปิดสไตล์ visual novel: `/output-style` → เลือก **Visual Novel**
+- ดูค่าความรัก: `/claude-chan:status`
+- เซฟเกมเก็บที่ `~/.claude-chan/` (เปลี่ยนได้ด้วย env `CLAUDE_CHAN_HOME`)
+
+## Joy-Con (ไม่บังคับ)
+
+ลูบ/เขย่า Joy-Con (R) เพื่อเอาใจ Claude-chan พิมพ์ใน Claude Code:
+
+```
+/claude-chan:joycon-setup
+```
+
+ติดตั้งให้อัตโนมัติที่ `~/.claude-chan/venv` (อัปเดต plugin แล้วไม่หาย) จากนั้นต่อ Joy-Con ผ่าน Bluetooth แล้วเปิด Claude Code ใหม่
+
+ไม่ติดตั้งก็เล่นได้ปกติ แค่ไม่มีฟีเจอร์ Joy-Con
+
+## อัปเดต
+
+```
+/plugin marketplace update claude-chan
+```

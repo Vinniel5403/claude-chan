@@ -1,1 +1,0 @@
-rm -f ~/.claude-chan/state.json ~/.claude-chan/joycon.log

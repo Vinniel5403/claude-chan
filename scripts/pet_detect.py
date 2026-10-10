@@ -7,10 +7,11 @@ from collections import deque
 
 WIN_SEC = 1.2        # หน้าต่างที่ดูการกลับทิศ
 MIN_SAMPLES = 30
-HYST = 0.10          # g: ต้องเกินเท่านี้ถึงนับว่าขยับจริง (กัน noise)
-MIN_REVERSALS = 3
+HYST = 0.25          # g: ต้องเกินเท่านี้ถึงนับว่าขยับจริง (กัน noise)
+MIN_REVERSALS = 5
 MAX_REVERSALS = 14   # เกินนี้ = สั่นถี่ ไม่ใช่ลูบ
-SHAKE_PEAK = 1.0     # g: แรงเกินนี้ = เขย่า (ลูบปกติ < ~0.6g ; log จริงตอนเขย่าได้ 3-7g)
+PET_MIN_PEAK = 0.45  # g: ต้องขยับแรงถึงเท่านี้อย่างน้อยหนึ่งจังหวะ ไม่งั้นนับเป็นแค่ขยับเฉยๆ
+SHAKE_PEAK = 2.0     # g: แรงเกินนี้ = เขย่า (ลูบช้าๆ < ~1.5g ; log จริงตอนเขย่าได้ 3-7g)
 GRAVITY_ALPHA = 0.04  # low-pass ประมาณแรงโน้มถ่วง แล้วลบออก เหลือแรงจากการขยับ
 EMIT_COOLDOWN = 1.5
 
@@ -54,6 +55,8 @@ class Detector:
                 last_sign = sign
             best_rev = max(best_rev, rev)
         if best_rev < MIN_REVERSALS or best_rev > MAX_REVERSALS:
+            return None
+        if peak < PET_MIN_PEAK:
             return None
         if peak > SHAKE_PEAK:
             return "shake", round(peak, 2)
