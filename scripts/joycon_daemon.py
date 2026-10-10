@@ -1,4 +1,4 @@
-"""อ่าน Joy-Con (R) ผ่าน Bluetooth ; ตรวจลูบ/เขย่า ; ใส่แต้มทันที ; แจ้ง Claude ผ่าน stdout
+"""อ่าน Joy-Con (R) ผ่าน Bluetooth ; ตรวจลูบ/เขย่า ; ปุ่ม A/B เลือกเมนู [1]/[2] ; ใส่แต้มทันที ; แจ้ง Claude ผ่าน stdout
 
 รันโดย monitor ของ plugin (monitors/monitors.json) : ทุกบรรทัดที่ print ออก stdout
 จะกลายเป็นการแจ้งเตือนที่ปลุก Claude ให้ตอบ ดังนั้น stdout ใช้เฉพาะ "เหตุการณ์จริง"
@@ -16,6 +16,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lib  # noqa: E402
+import menu  # noqa: E402
 import pet_detect  # noqa: E402
 import pets  # noqa: E402
 
@@ -25,6 +26,7 @@ PID_FILE = os.path.join(lib.STATE_DIR, "joycon.pid")
 MAX_LOG_BYTES = 200_000
 QUIET_SEC = 2.5       # หยุดลูบนานเท่านี้ถึงนับว่าจบรอบ แล้วค่อยแจ้ง Claude
 MIN_NOTIFY_GAP = 20   # ปลุก Claude ได้อย่างมากทุกกี่วินาที (แต่ละครั้งคือ 1 turn ที่เสียโทเคน)
+BUTTONS = {"a": "1", "b": "2"}  # ปุ่ม -> ข้อในเมนู (ข้อ 3 เขียนเอง ต้องพิมพ์)
 
 _debug = False
 
@@ -62,6 +64,7 @@ FACES = {"pet": "(⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄)", "shake": "(`Д´#)"}
 
 def flush(pending):
     text, affection = pets.apply(pending["pet"], pending["shake"])
+    menu.clear()  # Claude จะตอบพร้อมเมนูใหม่ เมนูเก่าใช้ไม่ได้แล้ว
     if os.path.exists(BEAT_FLAG):
         _flag(notified=True)  # จากนี้ Stop hook ตัดการสั่นได้
     face = FACES["shake" if pending["shake"] else "pet"]
@@ -72,6 +75,33 @@ def flush(pending):
         "โดนเขย่า: โกรธ) เล่าท่าทางเป็น *ตัวเอียง* ไม่ต้องรายงานตัวเลข และห้ามเริ่มงานหรือเรียก tool ใดๆ"
     )
     log(f"NOTIFY {pending} -> {affection}")
+
+
+def press(jc, button):
+    """กดปุ่ม = เลือกข้อในเมนูล่าสุด ; ใส่แต้มเหมือนพิมพ์เลข แล้วปลุก Claude ให้เล่นฉากนั้น"""
+    choice = BUTTONS[button]
+    items = menu.take()
+    if not items:
+        log(f"BUTTON {button} (ไม่มีเมนูรอ)")
+        buzz(jc, 2, 0x4C)  # สั่นเบาสองที = ยังเลือกไม่ได้
+        return
+    picked = items[int(choice) - 1]
+    with lib.locked():
+        state = lib.load()
+        action, _, _ = menu.pick(state, choice, picked)
+        lib.save(state)
+    affection = state["affection"]
+    key, name = lib.tier(affection)
+    buzz(jc, 1, 0x60)
+    notify(
+        f"[Claude-chan: ปุ่ม {button.upper()} บน Joy-Con] [เมนูที่ผู้ใช้เลือก] {action} | "
+        f"ค่าความรักตอนนี้ {affection}/100 ({name}) | "
+        "เล่นฉากนี้สั้นๆ เป็นกรอบบทพูด visual novel ตามฟอร์แมตใน output style ในคาแรกเตอร์ตามระดับความสนิท "
+        "ถ้าแต้มไม่เปลี่ยนเพราะ cooldown ให้เธอบ่น/ปฏิเสธตามนั้น ไม่ต้องรายงานตัวเลข "
+        "ถ้าตัวเลือกเป็นการสั่งงานให้ทำตามปกติภายใต้กฎเดิม ไม่งั้นห้ามเรียก tool ใดๆ "
+        "แล้วจบด้วยบรรทัดเมนู ▸ [1] …  [2] …  [3] เขียนเอง ชุดใหม่ตามบริบท"
+    )
+    log(f"PICK {button}->[{choice}] {picked} -> {affection}")
 
 
 # --- haptic: จังหวะหัวใจ (ตุบ-ตุบ) ตอนโดนลูบ ---
@@ -150,6 +180,20 @@ def heartbeat(jc):
     _beat_thread.start()
 
 
+def buzz(jc, times, level):
+    """สั่นสั้นๆ ยืนยันการกดปุ่ม"""
+    def work():
+        try:
+            for _ in range(times):
+                _rumble(jc, level)
+                time.sleep(0.06)
+                _rumble(jc, 0x40)
+                time.sleep(0.09)
+        except Exception as e:  # noqa: BLE001
+            log(f"rumble error: {e}")
+    threading.Thread(target=work, daemon=True).start()
+
+
 def urgent(jc):
     """เขย่าแรง : เสียงก๊อกแก๊กเหมือนน้ำแข็งกระทบแก้ว ; จังหวะสุ่ม แรงสุ่ม ค่อยๆ เบาลงแล้วเงียบ"""
     def work():
@@ -204,8 +248,14 @@ def _loop(jc):
     last, peak = None, 0.0
     tick = last_change = time.time()
     pending, last_event, last_notify = {"pet": 0, "shake": 0}, 0.0, 0.0
+    held = set()
     while True:
-        a = jc.get_status()["accel"]
+        st = jc.get_status()
+        now_held = {k for k in BUTTONS if st["buttons"]["right"][k]}
+        for k in now_held - held:  # นับตอนกดลงเท่านั้น กดค้างไม่รัว
+            press(jc, k)
+        held = now_held
+        a = st["accel"]
         row = (a["x"], a["y"], a["z"])
         now = time.time()
         if row != last:  # report ใหม่เท่านั้น (~60Hz)

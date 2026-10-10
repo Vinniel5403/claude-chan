@@ -3,8 +3,8 @@ import re
 import sys
 import time
 
-import game
 import lib
+import menu
 import persona
 import sprites
 
@@ -53,32 +53,6 @@ except ValueError:
     data = {}
 
 MENU = re.compile(r"^\s*\[?([123])\]?(?:\s+(.*))?$", re.S)
-MENU_LINE = re.compile(r"▸\s*\[1\](.*?)\[2\](.*?)\[3\](.*)")
-TRIP_KW = re.compile(r"เที่ยว|พาไป|ชวนไป|ไปกัน|ไป(?=\S)")
-GIFT_KW = re.compile(r"ของขวัญ|ซื้อ|เลี้ยง|มอบ|ให้(?=\S)")
-
-
-def last_menu(path):
-    """เมนู 3 ข้อที่ Claude เสนอไว้ในคำตอบล่าสุด (เมนูเปลี่ยนตามบทสนทนา) -> [ข้อ1, ข้อ2, ข้อ3] หรือ None"""
-    try:
-        with open(path, encoding="utf-8") as f:
-            lines = f.readlines()[-200:]
-    except (OSError, TypeError):
-        return None
-    for raw in reversed(lines):
-        try:
-            msg = json.loads(raw)
-        except ValueError:
-            continue
-        if msg.get("type") != "assistant":
-            continue
-        content = (msg.get("message") or {}).get("content")
-        text = content if isinstance(content, str) else "".join(
-            b.get("text", "") for b in content or [] if isinstance(b, dict))
-        m = MENU_LINE.search(text)
-        if m:
-            return [g.strip() for g in m.groups()]
-    return None
 
 
 with lib.locked():
@@ -91,32 +65,19 @@ with lib.locked():
     m = MENU.match(prompt)
     if m:
         choice, rest = m.group(1), (m.group(2) or "").strip()
-        menu = last_menu(data.get("transcript_path"))
-        picked = menu[int(choice) - 1] if menu else ""
+        menu_items = menu.last_menu(data.get("transcript_path"))
+        picked = menu_items[int(choice) - 1] if menu_items else ""
         if choice == "3":
             prompt = rest or prompt  # [3] เขียนเอง: ข้อความที่เหลือคือสิ่งที่พูด/สั่งจริง
-        elif picked and len(rest) <= 30:
-            if TRIP_KW.search(picked):
-                res = game.trip(state, rest or picked)
-            elif GIFT_KW.search(picked):
-                res = game.gift(state, rest or picked)
-            else:
-                res = None
-            if res:
-                action, emotion, delta = res["text"], res["emotion"], res["delta"]
-            else:
-                action = f"ผู้ใช้เลือกตัวเลือกที่ {choice} จากเมนูที่คุณเสนอ: {picked} (เล่นต่อตามนั้น แต้มไม่เปลี่ยน)"
-        elif not picked:
-            # ไม่รู้เมนูเดิม: ใช้เมนูคลาสสิก
-            res = (game.trip if choice == "1" else game.gift)(state, rest) if len(rest) <= 30 else None
-            if res:
-                action, emotion, delta = res["text"], res["emotion"], res["delta"]
+        elif len(rest) <= 30:
+            action, emotion, delta = menu.pick(state, choice, picked, rest)
 
     if action is None:
         delta = score(prompt, state)
         if delta:
             lib.add(state, delta)
     lib.save(state)
+menu.clear()  # ผู้ใช้พิมพ์แล้ว เมนูเก่าใช้กับปุ่ม Joy-Con ไม่ได้อีก
 
 print(json.dumps({
     "systemMessage": sprites.render(state, delta, emotion, days, prompt),
