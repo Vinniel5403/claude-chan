@@ -19,10 +19,10 @@ LOG_FILE = os.path.join(lib.STATE_DIR, "charger.log")
 PID_FILE = os.path.join(lib.STATE_DIR, "charger.pid")
 MAX_LOG_BYTES = 100_000
 POLL_SEC = 0.5
-WINDOW_SEC = 20       # นับการเสียบ/ถอดภายในช่วงนี้
-MIN_TOGGLES = 4       # เสียบ-ถอด-เสียบ-ถอด (2 รอบ) ขึ้นไปถึงนับว่า "ถี่"
-QUIET_SEC = 3         # หยุดเล่นสายนานเท่านี้ถึงนับว่าจบรอบ แล้วค่อยแจ้ง
-MIN_NOTIFY_GAP = 60   # ปลุก Claude ได้อย่างมากทุกกี่วินาที
+WINDOW_SEC = 10       # นับการเสียบ/ถอดภายในช่วงนี้ (เว้น 2-3 วิระหว่างครั้งก็ยังนับ)
+MIN_TOGGLES = 2       # ถอด-เสียบ (หรือเสียบ-ถอด) แค่ 2 ครั้งก็นับว่า "ถี่"
+QUIET_SEC = 2         # หยุดเล่นสายนานเท่านี้ถึงนับว่าจบรอบ แล้วค่อยแจ้ง
+MIN_NOTIFY_GAP = 30   # ปลุก Claude ได้อย่างมากทุกกี่วินาที
 
 _debug = False
 
