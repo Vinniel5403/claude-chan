@@ -18,6 +18,10 @@
 - ดูค่าความรัก: `/claude-chan:status`
 - เซฟเกมเก็บที่ `~/.claude-chan/` (เปลี่ยนได้ด้วย env `CLAUDE_CHAN_HOME`)
 
+## สายชาร์จ
+
+โน้ตบุ๊ก (macOS/Linux) เสียบๆ ถอดๆ สายชาร์จถี่ๆ (2 รอบใน 20 วิ) แล้ว Claude-chan จะเขิน ใช้ได้เลยไม่ต้องติดตั้งเพิ่ม
+
 ## Joy-Con (ไม่บังคับ)
 
 ลูบ/เขย่า Joy-Con (R) เพื่อเอาใจ Claude-chan พิมพ์ใน Claude Code:

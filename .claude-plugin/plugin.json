@@ -1,6 +1,6 @@
 {
   "name": "claude-chan",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "เกมจีบ Claude-chan: ค่าความสัมพันธ์ต่ำ = เรื่องมาก/ไม่ยอมทำงาน, ค่าสูง = เชื่อฟัง",
   "author": { "name": "vinniel" }
 }
