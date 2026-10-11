@@ -34,6 +34,8 @@ def _defaults():
         "last_trip": 0,
         "pet_cursor": 0,
         "pet_hour": {"start": 0, "gain": 0},
+        "fail_streak": 0,
+        "last_react": 0,
     }
 
 
