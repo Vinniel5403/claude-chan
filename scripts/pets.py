@@ -26,9 +26,9 @@ def apply(pets, shakes):
     parts = []
     if pets:
         if gain:
-            parts.append(f"ผู้ใช้ลูบหัวเธอด้วย Joy-Con ({pets} ครั้ง)")
+            parts.append("ผู้ใช้ลูบหัวเธอด้วย Joy-Con")
         else:
-            parts.append(f"ผู้ใช้ลูบหัวเธอ ({pets} ครั้ง) แต่ลูบบ่อยเกินไปในชั่วโมงนี้ เธอรู้สึกว่ามากไปแล้ว")
+            parts.append("ผู้ใช้ลูบหัวเธอ แต่ลูบบ่อยเกินไปในชั่วโมงนี้ เธอรู้สึกว่ามากไปแล้ว")
     if shakes:
-        parts.append(f"ผู้ใช้เขย่าตัวเธอแรงๆ ({shakes} ครั้ง) เธอตกใจและโกรธ")
+        parts.append("ผู้ใช้เขย่าตัวเธอแรงๆ เธอตกใจและโกรธ")
     return " และ ".join(parts), state["affection"]
