@@ -5,3 +5,4 @@ __pycache__/
 box.txt
 reset.txt
 *.mp3
+tools/
