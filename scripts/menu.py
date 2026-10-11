@@ -13,8 +13,9 @@ MENU_FILE = os.path.join(lib.STATE_DIR, "menu.json")
 KEYS = "YBA"  # ลำดับในเมนู ; ตรงกับปุ่มบน Joy-Con (R)
 MENU_LINE = re.compile(r"▸\s*(\[[YAB123]\].*)")
 ITEM = re.compile(r"\[([YAB123])\]\s*([^\[]*)")
-TRIP_KW = re.compile(r"เที่ยว|พาไป|ชวนไป|ไปกัน|ไป(?=\S)")
-GIFT_KW = re.compile(r"ของขวัญ|ซื้อ|เลี้ยง|มอบ|ให้(?=\S)")
+# ต้องขึ้นต้นข้อด้วยคำพวกนี้ (ใช้ .match) กันข้อที่แค่มีคำว่า "ให้"/"ของขวัญ" ปน เช่น "commit ให้เลย" "แก้บั๊กของขวัญ"
+TRIP_KW = re.compile(r"\W*(พาไป|ชวนไป|ไปเที่ยว|เที่ยว|ไปกัน)")
+GIFT_KW = re.compile(r"\W*(ซื้อ|ให้ของขวัญ|ของขวัญ|เลี้ยง|มอบ)")
 
 
 def parse(text):
@@ -77,9 +78,9 @@ def last_menu(path):
 def pick(state, key, picked, rest=""):
     """เลือกข้อ Y/B/A -> (action, emotion, delta) หรือ None ; ใส่แต้มลง state แล้ว (ผู้เรียกต้องถือ lock และ save เอง)"""
     if picked:
-        if TRIP_KW.search(picked):
+        if TRIP_KW.match(picked):
             res = game.trip(state, rest or picked)
-        elif GIFT_KW.search(picked):
+        elif GIFT_KW.match(picked):
             res = game.gift(state, rest or picked)
         else:
             return f"ผู้ใช้เลือกตัวเลือก [{key}] จากเมนูที่คุณเสนอ: {picked} (เล่นต่อตามนั้น แต้มไม่เปลี่ยน)", None, 0
